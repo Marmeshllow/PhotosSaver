@@ -87,12 +87,12 @@ class Vk:
                         items = self._get_photos_list(id_album)
                         download_photos(items['response']['items'], album_name, self.owner_id)
                         print('Success')
-                        break
+                        return f'{self.owner_id}_{album_name}'
                     else:
                         items = self._get_user_photos_list()
                         download_photos(items['response']['items'], album_name, self.owner_id)
                         print('Success')
-                        break
+                        return f'{self.owner_id}_{album_name}'
                 else:
                     print('Введите корректное число')
                     continue
