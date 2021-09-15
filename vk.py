@@ -32,9 +32,12 @@ class Vk:
             'access_token': self.token,
             'v': '5.131'
         }
-
-        res = requests.get(self.url+'photos.getAlbums', params=params)
-        return res.json()['response']['items']
+        res = requests.get(self.url+'photos.getAlbums', params=params).json()
+        try:
+            if res['error']['error_code'] == 30:
+                return None
+        except KeyError:
+            return res['response']['items']
 
     def _get_photos_list(self, album_id):
         params = {
@@ -46,8 +49,8 @@ class Vk:
             'access_token': self.token,
             'v': '5.131'
         }
-        res = requests.get(self.url+'photos.get', params=params)
-        download_photos(res.json()['response']['items'])
+        res = requests.get(self.url+'photos.get', params=params).json()
+        download_photos(res['response']['items'])
 
     def _get_user_photos_list(self):
         params = {
@@ -58,30 +61,33 @@ class Vk:
             'v': '5.131'
         }
 
-        res = requests.get(self.url + 'photos.getUserPhotos', params=params)
-        download_photos(res.json()['response']['items'])
+        res = requests.get(self.url + 'photos.getUserPhotos', params=params).json()
+        download_photos(res['response']['items'])
 
     def choice_album(self):
         albums = self._get_albums()
-        while True:
-            print('Введите номер альбома')
-            for index, elm in enumerate(albums):
-                print(f'{index}. {elm["title"]} ||| {elm["size"]} фотографии')
-            try:
-                choice_alb_num = int(input())
-            except ValueError:
-                print('Введите корректное число')
-                continue
-            if choice_alb_num in range(0, len(albums)):
-                id_album = albums[choice_alb_num]['id']
-                if id_album != -9000:
-                    self._get_photos_list(id_album)
-                    print('Success')
-                    break
+        if albums is not None:
+            while True:
+                print('Введите номер альбома')
+                for index, elm in enumerate(albums):
+                    print(f'{index}. {elm["title"]} ||| {elm["size"]} фотографии')
+                try:
+                    choice_alb_num = int(input())
+                except ValueError:
+                    print('Введите корректное число')
+                    continue
+                if choice_alb_num in range(0, len(albums)):
+                    id_album = albums[choice_alb_num]['id']
+                    if id_album != -9000:
+                        self._get_photos_list(id_album)
+                        print('Success')
+                        break
+                    else:
+                        self._get_user_photos_list()
+                        print('Success')
+                        break
                 else:
-                    self._get_user_photos_list()
-                    print('Success')
-                    break
-            else:
-                print('Введите корректное число')
-                continue
+                    print('Введите корректное число')
+                    continue
+        else:
+            print('Closed profile')
