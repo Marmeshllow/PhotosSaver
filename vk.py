@@ -1,21 +1,26 @@
 import os
-from time import sleep
+import time
 import requests
 from tqdm import tqdm
 
 
-def download_photos(photo_list):
+def download_photos(photo_list, album_name, owner_id):
+    folder_name = f'{str(owner_id)}_{album_name}'
+    if not os.path.exists(folder_name):
+        os.mkdir(folder_name)
+    else:
+        os.mkdir(f'{folder_name}_{str(time.time())}')
     for item in tqdm(photo_list):
         likes_count = item["likes"]["count"]
-        if not os.path.exists(f'Photos/{likes_count}.jpg'):
-            with open(f'Photos/{likes_count}.jpg', 'wb') as file:
+        if not os.path.exists(f'{folder_name}/{likes_count}.jpg'):
+            with open(f'{folder_name}/{likes_count}.jpg', 'wb') as file:
                 photo = requests.get(item['sizes'][-1]['url'])
                 file.write(photo.content)
         else:
-            with open(f'Photos/{likes_count}_{item["date"]}.jpg', 'wb') as file:
+            with open(f'{folder_name}/{likes_count}_{item["date"]}.jpg', 'wb') as file:
                 photo = requests.get(item['sizes'][-1]['url'])
                 file.write(photo.content)
-        sleep(0.5)
+        time.sleep(0.5)
 
 
 class Vk:
@@ -50,7 +55,8 @@ class Vk:
             'v': '5.131'
         }
         res = requests.get(self.url+'photos.get', params=params).json()
-        download_photos(res['response']['items'])
+        #download_photos(res['response']['items'])
+        return res
 
     def _get_user_photos_list(self):
         params = {
@@ -60,9 +66,9 @@ class Vk:
             'access_token': self.token,
             'v': '5.131'
         }
-
         res = requests.get(self.url + 'photos.getUserPhotos', params=params).json()
-        download_photos(res['response']['items'])
+        #download_photos(res['response']['items'])
+        return res
 
     def choice_album(self):
         albums = self._get_albums()
@@ -78,12 +84,15 @@ class Vk:
                     continue
                 if choice_alb_num in range(0, len(albums)):
                     id_album = albums[choice_alb_num]['id']
+                    album_name = albums[choice_alb_num]['title']
                     if id_album != -9000:
-                        self._get_photos_list(id_album)
+                        items = self._get_photos_list(id_album)
+                        download_photos(items['response']['items'], album_name, self.owner_id)
                         print('Success')
                         break
                     else:
-                        self._get_user_photos_list()
+                        items = self._get_user_photos_list()
+                        download_photos(items['response']['items'], album_name, self.owner_id)
                         print('Success')
                         break
                 else:
