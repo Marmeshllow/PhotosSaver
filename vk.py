@@ -4,13 +4,24 @@ import requests
 from tqdm import tqdm
 
 
-def download_photos(photo_list, album_name, owner_id):
-    folder_name = f'{str(owner_id)}_{album_name}'
-    if not os.path.exists(folder_name):
-        os.mkdir(folder_name)
-    else:
-        os.mkdir(f'{folder_name}_{str(time.time())}')
-    for item in tqdm(photo_list):
+def create_folder(folder_name: str):
+    while True:
+        if os.path.exists(folder_name):
+            folder_name = input('Такая папка уже существует\n')
+        try:
+            os.mkdir(folder_name)
+            return folder_name
+        except OSError:
+            print('Неккорректное имя папки')
+            folder_name = input('Введите имя папки для фото\n')
+            continue
+
+
+def download_photos(photo_list: list, album_name: str):
+    folder_name = create_folder(album_name)
+    pbar = tqdm(photo_list)
+    for item in pbar:
+        pbar.set_description('Download photos from VK')
         likes_count = item["likes"]["count"]
         if not os.path.exists(f'{folder_name}/{likes_count}.jpg'):
             with open(f'{folder_name}/{likes_count}.jpg', 'wb') as file:
@@ -21,15 +32,16 @@ def download_photos(photo_list, album_name, owner_id):
                 photo = requests.get(item['sizes'][-1]['url'])
                 file.write(photo.content)
         time.sleep(0.5)
+    return folder_name
 
 
 class Vk:
-    def __init__(self, token, owner_id):
+    def __init__(self, token: str, owner_id: int):
         self.token = token
         self.owner_id = owner_id
         self.url = 'https://api.vk.com/method/'
 
-    def _get_albums(self):
+    def get_albums(self):
         params = {
             'owner_id': self.owner_id,
             'photo_sizes': '1',
@@ -44,7 +56,7 @@ class Vk:
         except KeyError:
             return res['response']['items']
 
-    def _get_photos_list(self, album_id):
+    def get_photos_list(self, album_id):
         params = {
             'owner_id': self.owner_id,
             'album_id': album_id,
@@ -57,11 +69,12 @@ class Vk:
         res = requests.get(self.url+'photos.get', params=params).json()
         return res
 
-    def _get_user_photos_list(self):
+    def get_user_photos_list(self):
         params = {
             'user_id': self.owner_id,
             'extended': '1',
             'count': '1000',
+            'photo_sizes': '1',
             'access_token': self.token,
             'v': '5.131'
         }
@@ -69,7 +82,7 @@ class Vk:
         return res
 
     def choice_album(self):
-        albums = self._get_albums()
+        albums = self.get_albums()
         if albums is not None:
             while True:
                 print('Введите номер альбома')
@@ -84,17 +97,14 @@ class Vk:
                     id_album = albums[choice_alb_num]['id']
                     album_name = albums[choice_alb_num]['title']
                     if id_album != -9000:
-                        items = self._get_photos_list(id_album)
-                        download_photos(items['response']['items'], album_name, self.owner_id)
-                        print('Success')
-                        return f'{self.owner_id}_{album_name}'
+                        items = self.get_photos_list(id_album)
                     else:
-                        items = self._get_user_photos_list()
-                        download_photos(items['response']['items'], album_name, self.owner_id)
-                        print('Success')
-                        return f'{self.owner_id}_{album_name}'
+                        items = self.get_user_photos_list()
+                    folder_name = download_photos(items['response']['items'], album_name)
+                    print('Success')
+                    return folder_name
                 else:
                     print('Введите корректное число')
                     continue
         else:
-            print('Closed profile')
+            print('Closed profile or incorrect id')
