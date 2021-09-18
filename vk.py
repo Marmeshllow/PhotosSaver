@@ -85,11 +85,14 @@ class Vk:
         albums = self.get_albums()
         if albums is not None:
             while True:
-                print('Введите номер альбома')
+                print('Введите номер альбома или /q чтобы выйти')
                 for index, elm in enumerate(albums):
                     print(f'{index}. {elm["title"]} ||| {elm["size"]} фотографии')
+                choice_alb_num = input()
+                if choice_alb_num == '/q':
+                    break
                 try:
-                    choice_alb_num = int(input())
+                    int(choice_alb_num)
                 except ValueError:
                     print('Введите корректное число')
                     continue

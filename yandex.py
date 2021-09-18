@@ -4,14 +4,14 @@ import json
 from tqdm import tqdm
 
 
-def logs(log_list, count):
+def logs(log_list, count, folder_name):
     data = {
         'response': {
             'count': count,
             'items': log_list
         }
     }
-    with open('2.json', 'w', encoding='utf-8') as file:
+    with open(f'{folder_name}.json', 'w', encoding='utf-8') as file:
         json.dump(data, file)
 
 
@@ -55,5 +55,11 @@ class YaUploader:
             self.upload(f'{folder_name}/{photo}')
             size = os.path.getsize(f'{folder_name}/{photo}')
             log_list.append({'name': photo, 'size': size})
-        logs(log_list, len(photos_list))
+        logs(log_list, len(photos_list), folder_name)
         print('Success')
+
+    def upload_from_url(self, url: str):
+        upload_url = "https://cloud-api.yandex.net/v1/disk/resources/upload"
+        headers = self._get_headers()
+        params = {"path": 'Загрузки/1.jpg', "url": url}
+        requests.post(upload_url, headers=headers, params=params)
